@@ -261,7 +261,7 @@ def refresh() {
 def configure() {
 	// Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
 	// enrolls with default periodic reporting until newer 5 min interval is confirmed
-	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID, offlinePingable: "1"])
+	sendEvent(name: "checkInterval", value: 4 * 60 * 60 + 1 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID, offlinePingable: "1"])
 
 	log.debug "Configuring Reporting"
 	def configCmds = []
@@ -269,11 +269,11 @@ def configure() {
 	// temperature minReportTime 30 seconds, maxReportTime 5 min. Reporting interval if no activity
 	// battery minReport 30 seconds, maxReportTime 6 hrs by default
 	if (device.getDataValue("manufacturer") == "Samjin") {
-		configCmds += zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 30, 21600, 0x10)
+		configCmds += zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 300, 43200, 0x10)
 	} else {
 		configCmds += zigbee.batteryConfig()
 	}
-	configCmds += zigbee.temperatureConfig(30, 300)
+	configCmds += zigbee.temperatureConfig(300, 900)
 
 	return refresh() + configCmds + refresh() // send refresh cmds as part of config
 }
