@@ -18,14 +18,9 @@ import physicalgraph.zigbee.zcl.DataType
 
 metadata {
     definition(name: "SmartSense Button", namespace: "smartthings", author: "SmartThings", runLocally: true, minHubCoreVersion: '000.022.0000', executeCommandsLocally: false, mnmn: "SmartThings", vid: "SmartThings-smartthings-SmartSense_Button", ocfDeviceType: "x.com.st.d.remotecontroller") {
-        capability "Configuration"
         capability "Battery"
-        capability "Refresh"
-        capability "Temperature Measurement"
         capability "Button"
         capability "Holdable Button"
-        capability "Health Check"
-        capability "Sensor"
 
         fingerprint inClusters: "0000,0001,0003,0020,0402,0500", outClusters: "0019", manufacturer: "Samjin", model: "button", deviceJoinName: "Button"
     }
@@ -55,27 +50,13 @@ metadata {
                 attributeState "held", label: "Held", icon:"st.Weather.weather13", backgroundColor:"#53a7c0"
             }
         }
-        valueTile("temperature", "device.temperature", inactiveLabel: false, width: 2, height: 2) {
-            state "temperature", label: '${currentValue}°',
-                    backgroundColors: [
-                            [value: 31, color: "#153591"],
-                            [value: 44, color: "#1e9cbb"],
-                            [value: 59, color: "#90d2a7"],
-                            [value: 74, color: "#44b621"],
-                            [value: 84, color: "#f1d801"],
-                            [value: 95, color: "#d04e00"],
-                            [value: 96, color: "#bc2323"]
-                    ]
-        }
+        
         valueTile("battery", "device.battery", decoration: "flat", inactiveLabel: false, width: 2, height: 2) {
             state "battery", label: '${currentValue}% battery', unit: ""
         }
-        standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "default", action: "refresh.refresh", icon: "st.secondary.refresh"
-        }
 
-        main(["button", "temperature"])
-        details(["button", "temperature", "battery", "refresh"])
+        main(["button"])
+        details(["button", "battery"])
     }
 }
 
@@ -251,41 +232,4 @@ private Map getButtonResult(value) {
  * */
 def ping() {
     zigbee.readAttribute(zigbee.IAS_ZONE_CLUSTER, zigbee.ATTRIBUTE_IAS_ZONE_STATUS)
-}
-
-def refresh() {
-    log.debug "Refreshing Values"
-    def refreshCmds = []
-
-    if (device.getDataValue("manufacturer") == "Samjin") {
-        refreshCmds += zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021)
-    } else {
-        refreshCmds += zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0020)
-    }
-    refreshCmds += zigbee.readAttribute(zigbee.TEMPERATURE_MEASUREMENT_CLUSTER, 0x0000) +
-        zigbee.readAttribute(zigbee.IAS_ZONE_CLUSTER, zigbee.ATTRIBUTE_IAS_ZONE_STATUS) +
-        zigbee.enrollResponse()
-
-    return refreshCmds
-}
-
-def configure() {
-    // Device-Watch allows 2 check-in misses from device + ping (plus 1 min lag time)
-    // enrolls with default periodic reporting until newer 5 min interval is confirmed
-    // Sets up low battery threshold reporting
-    sendEvent(name: "DeviceWatch-Enroll", displayed: false, value: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID, scheme: "TRACKED", checkInterval: 2 * 60 * 60 + 1 * 60, lowBatteryThresholds: [15, 7, 3], offlinePingable: "1"].encodeAsJSON())
-
-    log.debug "Configuring Reporting"
-    def configCmds = []
-
-    // temperature minReportTime 30 seconds, maxReportTime 5 min. Reporting interval if no activity
-    // battery minReport 30 seconds, maxReportTime 6 hrs by default
-    if (device.getDataValue("manufacturer") == "Samjin") {
-        configCmds += zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, 0x0021, DataType.UINT8, 30, 21600, 0x10)
-    } else {
-        configCmds += zigbee.batteryConfig()
-    }
-    configCmds += zigbee.temperatureConfig(30, 300)
-
-    return refresh() + configCmds + refresh() // send refresh cmds as part of config
 }

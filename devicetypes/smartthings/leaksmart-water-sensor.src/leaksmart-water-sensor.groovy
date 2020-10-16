@@ -139,7 +139,7 @@ def configure() {
 	sendCheckIntervalEvent()
 	log.debug "Configuring Reporting"
 	def configCmds = zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING, DataType.UINT8, 30, 21600, 0x01) +
-			zigbee.temperatureConfig(30, 300) +
+			zigbee.temperatureConfig(30, 900) +
 			zigbee.addBinding(EVENTS_ALERTS_CLUSTER)
 
 	return refresh() + configCmds + refresh()
